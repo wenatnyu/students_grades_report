@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生成绩报告</title>
+    <title>Student Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .student-info h1 {
+            color: #4a4a8c;
+            margin: 0;
+        }
+        .student-details {
+            color: #666;
+            margin: 5px 0;
+        }
+        .gpa-display {
+            background: #e3f2fd;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: #1976d2;
+            font-size: 18px;
+        }
+        .chart-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .chart-title {
+            color: #4a4a8c;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        .subjects-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .subjects-table th {
+            background: #4a4a8c;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        .subjects-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .subjects-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .subjects-table tr:hover {
+            background: #e9ecef;
+        }
+        .grade-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+        .grade-A { background: #4caf50; color: white; }
+        .grade-B { background: #2196f3; color: white; }
+        .grade-C { background: #ff9800; color: white; }
+        .grade-D { background: #ff5722; color: white; }
+        .grade-E { background: #f44336; color: white; }
+        .grade-F { background: #9c27b0; color: white; }
+        .download-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .download-btn {
+            background: #4a4a8c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background: #3a3a7c;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #4a4a8c;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        canvas {
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← 返回学生列表 / Back to Students List</a>
+        
+        <div class="header">
+            <div class="student-info">
+                <h1 id="studentName">学生姓名</h1>
+                <div class="student-details" id="studentDetails">学号: <span id="studentId"></span></div>
+                <div class="student-details">课程数: <span id="subjectCount"></span></div>
+            </div>
+            <div class="gpa-display">
+                GPA: <span id="studentGPA"></span>
+            </div>
+        </div>
+        
+        <table class="subjects-table">
+            <thead>
+                <tr>
+                    <th>科目 / Subject</th>
+                    <th>成绩 / Score</th>
+                    <th>等级 / Grade</th>
+                    <th>绩点 / GPA Point</th>
+                </tr>
+            </thead>
+            <tbody id="subjectsTableBody">
+            </tbody>
+        </table>
+        
+        <div class="chart-container">
+            <div class="chart-title">雷达图 - 学生能力与平均值对比 / Radar Chart - Student Ability vs Average</div>
+            <canvas id="radarChart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">饼图 - 各科成绩占比 / Pie Chart - Subject Scores Proportion</div>
+            <canvas id="pieChart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">柱状图 - 成绩分布与平均分对比 / Bar Chart - Score Distribution vs Average</div>
+            <canvas id="barChart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">环形图 - 各科成绩占比 / Doughnut Chart - Subject Scores Proportion</div>
+            <canvas id="doughnutChart"></canvas>
+        </div>
+        
+        <div class="download-buttons">
+            <button class="download-btn" id="downloadPDF">下载PDF / Download PDF</button>
+            <button class="download-btn" id="downloadImage">下载图片 / Download Image</button>
+        </div>
+    </div>
+
+    <script>
+        // Load student data from localStorage
+        const student = JSON.parse(localStorage.getItem('currentStudent'));
+        const subjectAverages = JSON.parse(localStorage.getItem('subjectAverages'));
+        
+        if (!student) {
+            window.location.href = 'index.html';
+        }
+        
+        // Display student info
+        document.getElementById('studentName').textContent = `${student.chineseName} (${student.englishName})`;
+        document.getElementById('studentId').textContent = student.id;
+        document.getElementById('studentGPA').textContent = student.gpa;
+        document.getElementById('subjectCount').textContent = student.subjects.length;
+        
+        // Display subjects table
+        const subjectsTableBody = document.getElementById('subjectsTableBody');
+        student.subjects.forEach(subject => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${subject.name}</td>
+                <td>${subject.score}</td>
+                <td><span class="grade-badge grade-${subject.grade}">${subject.grade}</span></td>
+                <td>${subject.gpaPoint}</td>
+            `;
+            subjectsTableBody.appendChild(row);
+        });
+        
+        // Sort subjects by score (low to high) for bar chart
+        const sortedSubjects = [...student.subjects].sort((a, b) => a.score - b.score);
+        
+        // Prepare data for charts
+        const subjectNames = sortedSubjects.map(s => s.name);
+        const studentScores = sortedSubjects.map(s => s.score);
+        const averageScores = sortedSubjects.map(s => subjectAverages[s.name]);
+        
+        // Colors for charts
+        const backgroundColors = [
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(199, 199, 199, 0.7)',
+            'rgba(83, 102, 255, 0.7)',
+            'rgba(255, 99, 255, 0.7)',
+            'rgba(99, 255, 132, 0.7)'
+        ];
+        
+        const borderColors = [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(199, 199, 199, 1)',
+            'rgba(83, 102, 255, 1)',
+            'rgba(255, 99, 255, 1)',
+            'rgba(99, 255, 132, 1)'
+        ];
+        
+        // Radar Chart
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: subjectNames,
+                datasets: [{
+                    label: '学生得分 / Student Score',
+                    data: studentScores,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2
+                }, {
+                    label: '平均分 / Average Score',
+                    data: averageScores,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            }
+        });
+        
+        // Pie Chart
+        const pieCtx = document.getElementById('pieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: subjectNames,
+                datasets: [{
+                    data: studentScores,
+                    backgroundColor: backgroundColors.slice(0, subjectNames.length),
+                    borderColor: borderColors.slice(0, subjectNames.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+        
+        // Bar Chart
+        const barCtx = document.getElementById('barChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: subjectNames,
+                datasets: [{
+                    label: '学生得分 / Student Score',
+                    data: studentScores,
+                    backgroundColor: backgroundColors.slice(0, subjectNames.length),
+                    borderColor: borderColors.slice(0, subjectNames.length),
+                    borderWidth: 1
+                }, {
+                    label: '平均分 / Average Score',
+                    data: averageScores,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            }
+        });
+        
+        // Doughnut Chart
+        const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+        new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: subjectNames,
+                datasets: [{
+                    data: studentScores,
+                    backgroundColor: backgroundColors.slice(0, subjectNames.length),
+                    borderColor: borderColors.slice(0, subjectNames.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+        
+        // Download functionality
+        document.getElementById('downloadPDF').addEventListener('click', function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            html2canvas(document.querySelector('.container')).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 210;
+                const pageHeight = 295;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                doc.save(`${student.englishName}_Report.pdf`);
+            });
+        });
+        
+        document.getElementById('downloadImage').addEventListener('click', function() {
+            html2canvas(document.querySelector('.container')).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `${student.englishName}_Report.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    </script>
+</body>
+</html>
