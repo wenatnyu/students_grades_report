@@ -1,116 +1,413 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学生成绩报告系统</title>
     <title>Student Grades Report System</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .upload-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .upload-section {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            border: 2px dashed #4a4a8c;
+            border-radius: 10px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            max-width: 45%;
+        }
+        
+        .upload-section:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            border-color: #6a6aa8;
+        }
+        
+        .upload-section h2 {
+            color: #4a4a8c;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            margin: 15px 0;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-button {
+            background: #4a4a8c;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+        
+        .file-input-button:hover {
+            background: #3a3a7c;
+        }
+        
+        .progress-container {
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 15px;
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4a4a8c;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .xlsx-output {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            background: #e9ecef;
+            min-height: 15px;
+            font-size: 12px;
+        }
+        
+        .xlsx-output.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .xlsx-output.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .csv-output {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            background: #e9ecef;
+            min-height: 15px;
+            font-size: 12px;
+        }
+        
+        .csv-output.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .csv-output.success {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
 </head>
 <body>
     <img src="logo.png" alt="Logo" class="logo-centered">
     <div class="container">
         <div class="header">
             <div class="header-text">
-                <h1>学生成绩报告系统 / Student Grades Report System</h1>
+                <h1>Student Grades Report System</h1>
             </div>
         </div>
         
-        <div class="upload-section">
-            <h2>上传CSV文件 / Upload CSV File</h2>
-            <input type="file" id="fileInput" accept=".csv">
-            <br>
-            <button id="uploadButton">上传并处理 / Upload and Process</button>
+        <div class="upload-container">
+            <div class="upload-section">
+                <h2>Upload CSV File</h2>
+                <div class="file-input-wrapper">
+                    <div class="file-input-button">Choose CSV File</div>
+                    <input type="file" id="fileInput" accept=".csv">
+                </div>
+                <div class="progress-container" id="csvProgressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="csvProgressFill"></div>
+                    </div>
+                    <div class="progress-text" id="csvProgressText">Processing...</div>
+                </div>
+                <div id="csvOutput" class="csv-output"></div>
+            </div>
+            
+            <div class="upload-section">
+                <h2>Upload Excel File</h2>
+                <div class="file-input-wrapper">
+                    <div class="file-input-button">Choose Excel File</div>
+                    <input type="file" id="xlsxFileInput" accept=".xlsx,.xls,.xlsm,.xlsb">
+                </div>
+                <div class="progress-container" id="xlsxProgressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="xlsxProgressFill"></div>
+                    </div>
+                    <div class="progress-text" id="xlsxProgressText">Processing...</div>
+                </div>
+                <div id="xlsxOutput" class="xlsx-output"></div>
+            </div>
         </div>
         
         <div id="studentsSection" class="hidden">
-            <h2 class="section-title">学生列表 / Students List</h2>
+            <h2 class="section-title">Students List</h2>
             <div id="studentsList" class="students-list"></div>
             <div class="download-buttons">
-                <button class="download-btn" id="downloadAllPDF">下载所有学生报告PDF / Download All Reports PDF</button>
-                <button class="download-btn" id="downloadAllImage">下载所有学生报告图片 / Download All Reports Image</button>
+                <button class="download-btn" id="downloadAllPDF">Download All Reports PDF</button>
+                <button class="download-btn" id="downloadAllImage">Download All Reports Image</button>
             </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('uploadButton').addEventListener('click', function() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
+        // Load SheetJS library for XLSX processing
+        function loadSheetJS() {
+            return new Promise((resolve, reject) => {
+                if (window.XLSX) {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js';
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Failed to load SheetJS library'));
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Update progress bar
+        function updateProgress(containerId, fillId, textId, percentage, text) {
+            const container = document.getElementById(containerId);
+            const fill = document.getElementById(fillId);
+            const textElement = document.getElementById(textId);
+            
+            container.style.display = 'block';
+            fill.style.width = percentage + '%';
+            textElement.textContent = text;
+        }
+        
+        // Hide progress bar
+        function hideProgress(containerId) {
+            document.getElementById(containerId).style.display = 'none';
+        }
+        
+        // Log messages to CSV output div
+        function logCsvMessage(message, isError = false, isSuccess = false) {
+            const outputDiv = document.getElementById('csvOutput');
+            outputDiv.textContent = message;
+            outputDiv.className = 'csv-output';
+            if (isError) {
+                outputDiv.classList.add('error');
+            } else if (isSuccess) {
+                outputDiv.classList.add('success');
+            }
+        }
+        
+        // Clear CSV output div
+        function clearCsvOutput() {
+            document.getElementById('csvOutput').innerHTML = '';
+        }
+        
+        // Log messages to XLSX output div
+        function logXlsxMessage(message, isError = false, isSuccess = false) {
+            const outputDiv = document.getElementById('xlsxOutput');
+            outputDiv.textContent = message;
+            outputDiv.className = 'xlsx-output';
+            if (isError) {
+                outputDiv.classList.add('error');
+            } else if (isSuccess) {
+                outputDiv.classList.add('success');
+            }
+        }
+        
+        // Clear XLSX output div
+        function clearXlsxOutput() {
+            document.getElementById('xlsxOutput').innerHTML = '';
+        }
+        
+        // Process XLSX file and convert to CSV
+        async function processXLSX(file) {
+            try {
+                clearXlsxOutput();
+                logXlsxMessage('Loading library...');
+                updateProgress('xlsxProgressContainer', 'xlsxProgressFill', 'xlsxProgressText', 20, 'Loading library...');
+                
+                await loadSheetJS();
+                
+                logXlsxMessage('Converting file...');
+                updateProgress('xlsxProgressContainer', 'xlsxProgressFill', 'xlsxProgressText', 50, 'Converting file...');
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+                
+                // Assuming the first sheet contains the data
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Convert to CSV
+                const csvContent = XLSX.utils.sheet_to_csv(worksheet);
+                
+                logXlsxMessage('Conversion complete. Processing data...');
+                updateProgress('xlsxProgressContainer', 'xlsxProgressFill', 'xlsxProgressText', 80, 'Processing data...');
+                
+                // Process the CSV content using existing function
+                processCSV(csvContent, true); // true indicates XLSX processing
+                
+                logXlsxMessage('Processing complete!', false, true);
+                updateProgress('xlsxProgressContainer', 'xlsxProgressFill', 'xlsxProgressText', 100, 'Complete!');
+                
+                // Hide progress after a short delay
+                setTimeout(() => {
+                    hideProgress('xlsxProgressContainer');
+                }, 1000);
+            } catch (error) {
+                logXlsxMessage('Conversion failed: ' + error.message, true);
+                updateProgress('xlsxProgressContainer', 'xlsxProgressFill', 'xlsxProgressText', 100, 'Error: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        // Handle CSV file upload
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
             
             if (!file) {
-                alert('请选择一个CSV文件 / Please select a CSV file');
                 return;
             }
             
+            clearCsvOutput();
+            logCsvMessage('Reading file...');
+            updateProgress('csvProgressContainer', 'csvProgressFill', 'csvProgressText', 10, 'Reading file...');
+            
             const reader = new FileReader();
             reader.onload = function(e) {
+                updateProgress('csvProgressContainer', 'csvProgressFill', 'csvProgressText', 50, 'Processing data...');
                 const content = e.target.result;
-                processCSV(content);
+                processCSV(content, false); // false indicates CSV processing
+                logCsvMessage('Processing complete!', false, true);
+                updateProgress('csvProgressContainer', 'csvProgressFill', 'csvProgressText', 100, 'Complete!');
+                
+                // Hide progress after a short delay
+                setTimeout(() => {
+                    hideProgress('csvProgressContainer');
+                }, 1000);
             };
             reader.readAsText(file, 'UTF-8');
         });
         
-        function processCSV(csvContent) {
-            const lines = csvContent.split('\n');
-            const headers = lines[0].split(',');
+        // Handle XLSX file upload
+        document.getElementById('xlsxFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
             
-            // Parse student data
-            const students = [];
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === '') continue;
-                
-                const values = lines[i].split(',');
-                const student = {
-                    id: values[0],
-                    chineseName: values[1],
-                    englishName: values[2],
-                    gpa: values[3],
-                    subjects: []
-                };
-                
-                // Parse subjects (every 4 columns after the first 5)
-                for (let j = 5; j < headers.length; j += 4) {
-                    if (j + 3 < headers.length) {
-                        const subjectName = headers[j].replace('成绩', '');
-                        const score = values[j];
-                        const grade = values[j + 1];
-                        const gpaPoint = values[j + 2];
-                        const comment = values[j + 3];
-                        
-                        if (score && score.trim() !== '') {
-                            // Create bilingual subject name
-                            const bilingualName = getBilingualSubjectName(subjectName);
-                            
-                            student.subjects.push({
-                                name: subjectName,
-                                bilingualName: bilingualName,
-                                score: parseFloat(score),
-                                grade: grade,
-                                gpaPoint: parseFloat(gpaPoint),
-                                comment: comment
-                            });
-                        }
-                    }
-                }
-                
-                students.push(student);
+            if (!file) {
+                return;
             }
             
-            // Calculate subject averages
-            const subjectAverages = calculateSubjectAverages(students);
-            
-            // Calculate GPA for each student
-            students.forEach(student => {
-                student.gpa = calculateGPA(student.subjects);
-            });
-            
-            // Save data to localStorage for use in individual reports
-            localStorage.setItem('studentsData', JSON.stringify(students));
-            localStorage.setItem('subjectAverages', JSON.stringify(subjectAverages));
-            
-            // Display students list
-            displayStudents(students);
+            processXLSX(file);
+        });
+        
+        function processCSV(csvContent, isXlsxProcessing = false) {
+            try {
+                if (isXlsxProcessing) {
+                    updateProgress('xlsxProgressContainer', 'xlsxProgressFill', 'xlsxProgressText', 90, 'Parsing data...');
+                } else {
+                    updateProgress('csvProgressContainer', 'csvProgressFill', 'csvProgressText', 60, 'Parsing data...');
+                }
+                
+                const lines = csvContent.split('\n');
+                const headers = lines[0].split(',');
+                
+                // Parse student data
+                const students = [];
+                for (let i = 1; i < lines.length; i++) {
+                    if (lines[i].trim() === '') continue;
+                    
+                    const values = lines[i].split(',');
+                    const student = {
+                        id: values[0],
+                        chineseName: values[1],
+                        englishName: values[2],
+                        gpa: values[3],
+                        subjects: []
+                    };
+                    
+                    // Parse subjects (every 4 columns after the first 5)
+                    for (let j = 5; j < headers.length; j += 4) {
+                        if (j + 3 < headers.length) {
+                            const subjectName = headers[j].replace('成绩', '');
+                            const score = values[j];
+                            const grade = values[j + 1];
+                            const gpaPoint = values[j + 2];
+                            const comment = values[j + 3];
+                            
+                            if (score && score.trim() !== '') {
+                                // Create bilingual subject name
+                                const bilingualName = getBilingualSubjectName(subjectName);
+                                
+                                student.subjects.push({
+                                    name: subjectName,
+                                    bilingualName: bilingualName,
+                                    score: parseFloat(score),
+                                    grade: grade,
+                                    gpaPoint: parseFloat(gpaPoint),
+                                    comment: comment
+                                });
+                            }
+                        }
+                    }
+                    
+                    students.push(student);
+                }
+                
+                // Calculate subject averages
+                const subjectAverages = calculateSubjectAverages(students);
+                
+                // Calculate GPA for each student
+                students.forEach(student => {
+                    student.gpa = calculateGPA(student.subjects);
+                });
+                
+                // Save data to localStorage for use in individual reports
+                localStorage.setItem('studentsData', JSON.stringify(students));
+                localStorage.setItem('subjectAverages', JSON.stringify(subjectAverages));
+                
+                // Display students list
+                displayStudents(students);
+            } catch (error) {
+                if (isXlsxProcessing) {
+                    logXlsxMessage('Processing failed: ' + error.message, true);
+                    updateProgress('xlsxProgressContainer', 'xlsxProgressFill', 'xlsxProgressText', 100, 'Error: ' + error.message);
+                } else {
+                    logCsvMessage('Processing failed: ' + error.message, true);
+                    updateProgress('csvProgressContainer', 'csvProgressFill', 'csvProgressText', 100, 'Error: ' + error.message);
+                }
+                console.error(error);
+            }
         }
         
         function calculateSubjectAverages(students) {
@@ -152,9 +449,9 @@
                 
                 studentCard.innerHTML = `
                     <div class="student-name">${student.chineseName} (${student.englishName})</div>
-                    <div class="student-id">学号: ${student.id}</div>
+                    <div class="student-id">ID: ${student.id}</div>
                     <div class="gpa">GPA: ${calculateGPA(student.subjects)}</div>
-                    <div>课程数: ${student.subjects.length}</div>
+                    <div>Courses: ${student.subjects.length}</div>
                 `;
                 
                 studentsList.appendChild(studentCard);
@@ -162,17 +459,15 @@
             
             document.getElementById('studentsSection').classList.remove('hidden');
             
-            // Add event listeners for download all buttons
+            // Add easter egg event listeners for download all buttons
             document.getElementById('downloadAllPDF').addEventListener('click', function() {
-                alert('下载所有学生报告功能正在开发中 / Download all reports feature is under development');
-                // Future implementation would iterate through all students and generate reports
-                // Would use similar html2canvas optimization as in report.html
+                playCreepySound();
+                alert('想啥呢。。。我肝了好几个通宵，得加钱🐶 —— Wayne');
             });
             
             document.getElementById('downloadAllImage').addEventListener('click', function() {
-                alert('下载所有学生报告功能正在开发中 / Download all reports feature is under development');
-                // Future implementation would iterate through all students and generate reports
-                // Would use similar html2canvas optimization as in report.html
+                playCreepySound();
+                alert('想啥呢。。。我肝了好几个通宵，得加钱🐶 —— Wayne');
             });
         }
         
@@ -211,6 +506,55 @@
             
             // For subjects that are already in English or don't have a mapping
             return subjectName;
+        }
+        
+        // Function to play creepy sound using Data URI
+        function playCreepySound() {
+            try {
+                // Create a more effective creepy sound using Web Audio API directly
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const audioContext = new AudioContext();
+                
+                // Resume context if needed (required in some browsers)
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        playCreepyTone(audioContext);
+                    });
+                } else {
+                    playCreepyTone(audioContext);
+                }
+            } catch (e) {
+                console.log("Web Audio API not supported:", e);
+            }
+        }
+        
+        // Function to create and play the actual creepy tone
+        function playCreepyTone(audioContext) {
+            try {
+                // Create oscillator and gain node
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                // Connect nodes
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Configure sound parameters for a creepy effect
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+                
+                // Configure volume envelope for a spooky effect
+                gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                // Play and stop
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } catch (e) {
+                console.log("Error playing creepy tone:", e);
+            }
         }
     </script>
 </body>

@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学生成绩报告</title>
     <title>Student Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -13,13 +12,13 @@
 <body>
     <img src="logo.png" alt="Logo" class="logo-centered">
     <div class="container">
-        <a href="index.html" class="back-link">← 返回学生列表 / Back to Students List</a>
+        <a href="index.html" class="back-link">← Back to Students List</a>
         
         <div class="header">
             <div class="student-info">
-                <h1 id="studentName">学生姓名</h1>
-                <div class="student-details" id="studentDetails">学号: <span id="studentId"></span></div>
-                <div class="student-details">课程数: <span id="subjectCount"></span></div>
+                <h1 id="studentName">Student Name</h1>
+                <div class="student-details" id="studentDetails">ID: <span id="studentId"></span></div>
+                <div class="student-details">Courses: <span id="subjectCount"></span></div>
             </div>
             <div class="gpa-display">
                 GPA: <span id="studentGPA"></span>
@@ -29,11 +28,11 @@
         <table class="subjects-table">
             <thead>
                 <tr>
-                    <th>科目 / Subject</th>
-                    <th>成绩 / Score</th>
-                    <th>等级 / Grade</th>
-                    <th>绩点 / GPA Point</th>
-                    <th>评语 / Comment</th>
+                    <th>Subject</th>
+                    <th>Score</th>
+                    <th>Grade</th>
+                    <th>GPA Point</th>
+                    <th>Comment</th>
                 </tr>
             </thead>
             <tbody id="subjectsTableBody">
@@ -41,28 +40,28 @@
         </table>
         
         <div class="chart-container">
-            <div class="chart-title">雷达图 - 学生能力与平均值对比 / Radar Chart - Student Ability vs Average</div>
+            <div class="chart-title">Radar Chart - Student Ability vs Average</div>
             <canvas id="radarChart"></canvas>
         </div>
         
         <div class="chart-container">
-            <div class="chart-title">饼图 - 各科成绩占比 / Pie Chart - Subject Scores Proportion</div>
+            <div class="chart-title">Pie Chart - Subject Scores Proportion</div>
             <canvas id="pieChart"></canvas>
         </div>
         
         <div class="chart-container">
-            <div class="chart-title">柱状图 - 成绩分布与平均分对比 / Bar Chart - Score Distribution vs Average</div>
+            <div class="chart-title">Bar Chart - Score Distribution vs Average</div>
             <canvas id="barChart"></canvas>
         </div>
         
         <div class="chart-container">
-            <div class="chart-title">环形图 - 各科成绩占比 / Doughnut Chart - Subject Scores Proportion</div>
+            <div class="chart-title">Doughnut Chart - Subject Scores Proportion</div>
             <canvas id="doughnutChart"></canvas>
         </div>
         
         <div class="download-buttons">
-            <button class="download-btn" id="downloadPDF">下载PDF / Download PDF</button>
-            <button class="download-btn" id="downloadImage">下载图片 / Download Image</button>
+            <button class="download-btn" id="downloadPDF">Download PDF</button>
+            <button class="download-btn" id="downloadImage">Download Image</button>
         </div>
     </div>
 
@@ -145,13 +144,13 @@
             data: {
                 labels: subjectNames,
                 datasets: [{
-                    label: '学生得分 / Student Score',
+                    label: 'Student Score',
                     data: studentScores,
                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
                     borderColor: 'rgba(54, 162, 235, 1)',
                     borderWidth: 2
                 }, {
-                    label: '平均分 / Average Score',
+                    label: 'Average Score',
                     data: averageScores,
                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
                     borderColor: 'rgba(255, 99, 132, 1)',
@@ -203,13 +202,13 @@
             data: {
                 labels: subjectNames,
                 datasets: [{
-                    label: '学生得分 / Student Score',
+                    label: 'Student Score',
                     data: studentScores,
                     backgroundColor: backgroundColors.slice(0, subjectNames.length),
                     borderColor: borderColors.slice(0, subjectNames.length),
                     borderWidth: 1
                 }, {
-                    label: '平均分 / Average Score',
+                    label: 'Average Score',
                     data: averageScores,
                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
                     borderColor: 'rgba(255, 99, 132, 1)',
@@ -379,15 +378,15 @@
         // Generate a simple comment based on score and grade
         function generateComment(score, grade) {
             if (score >= 90) {
-                return "表现优秀，继续保持 / Excellent performance, keep it up";
+                return "Excellent performance, keep it up";
             } else if (score >= 80) {
-                return "表现良好，还有提升空间 / Good performance, there's room for improvement";
+                return "Good performance, there's room for improvement";
             } else if (score >= 70) {
-                return "表现一般，需要更加努力 / Average performance, need to work harder";
+                return "Average performance, need to work harder";
             } else if (score >= 60) {
-                return "表现较差，需要重点关注 / Poor performance, needs attention";
+                return "Poor performance, needs attention";
             } else {
-                return "表现很差，需要额外帮助 / Very poor performance, needs extra help";
+                return "Very poor performance, needs extra help";
             }
         }
     </script>

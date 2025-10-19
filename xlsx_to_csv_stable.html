@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>XLSX → CSV (Stable Minimal)</title>
+<input type="file" id="file" accept=".xlsx,.xls,.xlsm,.xlsb">
+<div id="out" style="font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; font-size:14px;"></div>
+
+<script>
+const out = document.getElementById("out");
+const fileInput = document.getElementById("file");
+
+function log(msg) {
+  const p = document.createElement("p");
+  p.textContent = msg;
+  out.appendChild(p);
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error("load failed: " + src));
+    document.head.appendChild(s);
+  });
+}
+
+(async () => {
+  const sources = [
+    "https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js",
+    "https://cdn.jsdelivr.net/npm/xlsx@0.20.0/dist/xlsx.full.min.js",
+    "https://unpkg.com/xlsx@0.20.0/dist/xlsx.full.min.js",
+    "./xlsx.full.min.js" // local fallback (put the file next to this HTML if CDNs blocked)
+  ];
+  for (const src of sources) {
+    try {
+      await loadScript(src);
+      if (window.XLSX) { break; }
+    } catch (e) { /* try next */ }
+  }
+  if (!window.XLSX) {
+    log("❌ 无法加载 XLSX 库。请检查网络，或将 xlsx.full.min.js 放在本文件同目录后重试。");
+    return;
+  }
+
+  fileInput.addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    out.innerHTML = "";
+    log("Converting…");
+    try {
+      const ab = await f.arrayBuffer();
+      const wb = XLSX.read(ab, { type: "array", cellDates: true });
+      const base = f.name.replace(/\.[^.]+$/, "");
+      out.innerHTML = "";
+
+      (wb.SheetNames && wb.SheetNames.length ? wb.SheetNames : ["Sheet1"]).forEach((nm, i) => {
+        const ws = wb.Sheets[nm];
+        if (!ws) return;
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const safe = (nm || ("Sheet" + (i+1))).replace(/[\\/:*?\"<>|]/g, "_");
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = base + "_" + safe + ".csv";
+        a.textContent = "⬇ " + a.download;
+        a.style.display = "inline-block";
+        a.style.margin = "8px 0";
+        const p = document.createElement("p");
+        p.appendChild(a);
+        out.appendChild(p);
+      });
+
+      if (!wb.SheetNames || wb.SheetNames.length === 0) {
+        log("未检测到工作表");
+      }
+    } catch (err) {
+      log("转换失败：" + err);
+      console.error(err);
+    }
+  });
+})();
+</script>
