@@ -8,129 +8,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #eee;
-        }
-        .student-info h1 {
-            color: #4a4a8c;
-            margin: 0;
-        }
-        .student-details {
-            color: #666;
-            margin: 5px 0;
-        }
-        .gpa-display {
-            background: #e3f2fd;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-weight: bold;
-            color: #1976d2;
-            font-size: 18px;
-        }
-        .chart-container {
-            margin: 30px 0;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        .chart-title {
-            color: #4a4a8c;
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 20px;
-        }
-        .subjects-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 30px 0;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        .subjects-table th {
-            background: #4a4a8c;
-            color: white;
-            padding: 15px;
-            text-align: left;
-        }
-        .subjects-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-        }
-        .subjects-table tr:nth-child(even) {
-            background: #f8f9fa;
-        }
-        .subjects-table tr:hover {
-            background: #e9ecef;
-        }
-        .grade-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-weight: bold;
-        }
-        .grade-A { background: #4caf50; color: white; }
-        .grade-B { background: #2196f3; color: white; }
-        .grade-C { background: #ff9800; color: white; }
-        .grade-D { background: #ff5722; color: white; }
-        .grade-E { background: #f44336; color: white; }
-        .grade-F { background: #9c27b0; color: white; }
-        .download-buttons {
-            text-align: center;
-            margin: 30px 0;
-        }
-        .download-btn {
-            background: #4a4a8c;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 0 10px;
-            transition: background 0.3s;
-        }
-        .download-btn:hover {
-            background: #3a3a7c;
-        }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #4a4a8c;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
-        canvas {
-            max-height: 400px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <img src="logo.png" alt="Logo" class="logo-centered">
     <div class="container">
         <a href="index.html" class="back-link">← 返回学生列表 / Back to Students List</a>
         
@@ -152,6 +33,7 @@
                     <th>成绩 / Score</th>
                     <th>等级 / Grade</th>
                     <th>绩点 / GPA Point</th>
+                    <th>评语 / Comment</th>
                 </tr>
             </thead>
             <tbody id="subjectsTableBody">
@@ -188,6 +70,7 @@
         // Load student data from localStorage
         const student = JSON.parse(localStorage.getItem('currentStudent'));
         const subjectAverages = JSON.parse(localStorage.getItem('subjectAverages'));
+        const studentsData = JSON.parse(localStorage.getItem('studentsData'));
         
         if (!student) {
             window.location.href = 'index.html';
@@ -196,18 +79,26 @@
         // Display student info
         document.getElementById('studentName').textContent = `${student.chineseName} (${student.englishName})`;
         document.getElementById('studentId').textContent = student.id;
-        document.getElementById('studentGPA').textContent = student.gpa;
+        document.getElementById('studentGPA').textContent = calculateGPA(student.subjects);
         document.getElementById('subjectCount').textContent = student.subjects.length;
         
         // Display subjects table
         const subjectsTableBody = document.getElementById('subjectsTableBody');
         student.subjects.forEach(subject => {
             const row = document.createElement('tr');
+            const comment = subject.comment && subject.comment.trim() !== '' ? 
+                subject.comment : 
+                generateComment(subject.score, subject.grade);
+            
+            // Use bilingual name if available, otherwise use regular name
+            const displayName = subject.bilingualName || subject.name;
+            
             row.innerHTML = `
-                <td>${subject.name}</td>
+                <td>${displayName}</td>
                 <td>${subject.score}</td>
                 <td><span class="grade-badge grade-${subject.grade}">${subject.grade}</span></td>
                 <td>${subject.gpaPoint}</td>
+                <td>${comment}</td>
             `;
             subjectsTableBody.appendChild(row);
         });
@@ -216,7 +107,7 @@
         const sortedSubjects = [...student.subjects].sort((a, b) => a.score - b.score);
         
         // Prepare data for charts
-        const subjectNames = sortedSubjects.map(s => s.name);
+        const subjectNames = sortedSubjects.map(s => s.bilingualName || s.name);
         const studentScores = sortedSubjects.map(s => s.score);
         const averageScores = sortedSubjects.map(s => subjectAverages[s.name]);
         
@@ -366,38 +257,139 @@
         // Download functionality
         document.getElementById('downloadPDF').addEventListener('click', function() {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
             
-            html2canvas(document.querySelector('.container')).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
+            // Improve performance by setting proper styles during capture
+            const container = document.querySelector('.container');
+            const originalBodyOverflow = document.body.style.overflow;
+            const originalContainerOverflow = container.style.overflow;
+            const originalPosition = container.style.position;
+            const originalWidth = container.style.width;
+            
+            // Optimize for capture
+            document.body.style.overflow = 'visible';
+            container.style.overflow = 'visible';
+            container.style.position = 'relative';
+            container.style.width = '1000px'; // Set fixed width for consistent capture
+            
+            html2canvas(container, {
+                useCORS: true,
+                allowTaint: true,
+                scale: 1.5, // Moderate scale for quality without excessive size
+                width: container.scrollWidth,
+                height: container.scrollHeight,
+                willReadFrequently: true, // Address the performance warning
+                onclone: function(clonedDoc) {
+                    // Ensure cloned document has proper styling
+                    clonedDoc.body.style.overflow = 'visible';
+                }
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG for smaller file size
                 const imgWidth = 210;
                 const pageHeight = 295;
                 const imgHeight = canvas.height * imgWidth / canvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
                 
-                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
                 
                 while (heightLeft >= 0) {
                     position = heightLeft - imgHeight;
                     doc.addPage();
-                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
                 
+                // Restore original styles
+                document.body.style.overflow = originalBodyOverflow;
+                container.style.overflow = originalContainerOverflow;
+                container.style.position = originalPosition;
+                container.style.width = originalWidth;
+                
                 doc.save(`${student.englishName}_Report.pdf`);
+            }).catch(error => {
+                console.error('Error generating PDF:', error);
+                // Restore original styles even if there's an error
+                document.body.style.overflow = originalBodyOverflow;
+                container.style.overflow = originalContainerOverflow;
+                container.style.position = originalPosition;
+                container.style.width = originalWidth;
+                alert('Error generating PDF. Please try again.');
             });
         });
         
         document.getElementById('downloadImage').addEventListener('click', function() {
-            html2canvas(document.querySelector('.container')).then(canvas => {
+            const container = document.querySelector('.container');
+            const originalBodyOverflow = document.body.style.overflow;
+            const originalContainerOverflow = container.style.overflow;
+            const originalPosition = container.style.position;
+            const originalWidth = container.style.width;
+            
+            // Optimize for capture
+            document.body.style.overflow = 'visible';
+            container.style.overflow = 'visible';
+            container.style.position = 'relative';
+            container.style.width = '1000px';
+            
+            html2canvas(container, {
+                useCORS: true,
+                allowTaint: true,
+                scale: 2, // Higher scale for image quality
+                width: container.scrollWidth,
+                height: container.scrollHeight,
+                willReadFrequently: true, // Address the performance warning
+                onclone: function(clonedDoc) {
+                    clonedDoc.body.style.overflow = 'visible';
+                }
+            }).then(canvas => {
+                // Restore original styles
+                document.body.style.overflow = originalBodyOverflow;
+                container.style.overflow = originalContainerOverflow;
+                container.style.position = originalPosition;
+                container.style.width = originalWidth;
+                
                 const link = document.createElement('a');
                 link.download = `${student.englishName}_Report.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
+            }).catch(error => {
+                console.error('Error generating image:', error);
+                // Restore original styles even if there's an error
+                document.body.style.overflow = originalBodyOverflow;
+                container.style.overflow = originalContainerOverflow;
+                container.style.position = originalPosition;
+                container.style.width = originalWidth;
+                alert('Error generating image. Please try again.');
             });
         });
+        
+        // Calculate GPA based on subject GPA points
+        function calculateGPA(subjects) {
+            if (subjects.length === 0) return 'N/A';
+            const totalPoints = subjects.reduce((sum, subject) => sum + subject.gpaPoint, 0);
+            return (totalPoints / subjects.length).toFixed(2);
+        }
+        
+        // Generate a simple comment based on score and grade
+        function generateComment(score, grade) {
+            if (score >= 90) {
+                return "表现优秀，继续保持 / Excellent performance, keep it up";
+            } else if (score >= 80) {
+                return "表现良好，还有提升空间 / Good performance, there's room for improvement";
+            } else if (score >= 70) {
+                return "表现一般，需要更加努力 / Average performance, need to work harder";
+            } else if (score >= 60) {
+                return "表现较差，需要重点关注 / Poor performance, needs attention";
+            } else {
+                return "表现很差，需要额外帮助 / Very poor performance, needs extra help";
+            }
+        }
     </script>
 </body>
 </html>
